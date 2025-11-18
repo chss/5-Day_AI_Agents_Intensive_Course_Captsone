@@ -13,8 +13,10 @@ load_dotenv()
 
 # Build tools list conditionally based on RAG_CORPUS availability
 tools = []
+# Check for RAG_CORPUS environment variable
 rag_corpus = os.environ.get("RAG_CORPUS")
 
+# If RAG_CORPUS is set, add the VertexAiRagRetrieval tool
 if rag_corpus:
     ask_vertex_retrieval = VertexAiRagRetrieval(
         name='retrieve_rag_documentation',
@@ -30,7 +32,6 @@ if rag_corpus:
         vector_distance_threshold=0.6,
     )
     tools.append(ask_vertex_retrieval)
-
 
 
 root_agent = Agent(
