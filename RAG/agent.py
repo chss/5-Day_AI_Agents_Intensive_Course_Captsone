@@ -71,7 +71,7 @@ web_agent = Agent(
 
 # Setup a simple database connection (e.g., SQLite for this example)
 # In production, replace this with your Cloud SQL or Postgres connection string
-engine = create_engine("sqlite:///my_database.db")
+""" engine = create_engine("sqlite:///my_database.db")
 
 def query_database(sql_query: str) -> str:
     """
@@ -89,6 +89,7 @@ def query_database(sql_query: str) -> str:
             return "Error: Destructive actions are not allowed."
             
         with engine.connect() as connection:
+            print(sql_query)
             result = connection.execute(text(sql_query))
             rows = result.fetchall()
             return str(rows)
@@ -97,9 +98,9 @@ def query_database(sql_query: str) -> str:
 
 
 # Create the agent with the database tool
-db_agent = Agent(
+db_agent = Agent( """
     name="sql_analyst",
-    model="gemini-1.5-pro",  # Or your preferred model
+    model="gemini-2.5-flash",  # Or your preferred model
     description="An expert data analyst helper.",
     instruction="""
     You are a helpful data analyst. Your goal is to answer user questions by querying the database.
@@ -112,9 +113,8 @@ db_agent = Agent(
 
 consolidate_agent = SequentialAgent(
     name="consolidateagent",
-    sub_agents=[rag_agent, web_agent, db_agent],
+    sub_agents=[rag_agent, web_agent],
     description="An agent that first retrieves relevant documents using RAG and then consolidates the information to answer the user's query.",
-    
 )
 
 # For ADK tools compatibility, the root agent must be named `root_agent`
