@@ -62,27 +62,65 @@ rag_agent = Agent(
 web_agent = Agent(
     model='gemini-2.5-flash',
     name='web_search_agent',
-    description='Search the web for information',
-    instruction='You are a helpful agent that will search the web for information related to the user query. Provide the search results.',
-    output_key="web_response"
-)
-
-final_consolidate_agent = Agent(
-    model='gemini-2.5-flash',
-    name='final_consolidate_agent',
-    description='Consolidate responses',
-    instruction='You are a helpful agent that will take response from rag agent {rag_response} and web search agent {web_response}. Consolidate the information to answer the user query. Do not show the intermediate responses, just the final answer with citations.',
-    output_key="final_response"
+    description='Consolidate resp',
+    instruction='You are a helpful agent that will take response from rag agent {rag_response}  and search the web for more information if needed before answering the user. Please provide a final comprehensive response to the user query with proper citation and web links to the resources.',
+    output_key= "final_response"
 ) 
 
+
+"""
+# Setup a simple database connection (e.g., SQLite for this example)
+# In production, replace this with your Cloud SQL or Postgres connection string
+engine = create_engine("sqlite:///RAG/my_database.db")
+
+def query_database(sql_query: str) -> str:
+    
+    Executes a SQL query against the company database and returns the results.
+    
+    Args:
+        sql_query: The SQL syntax to execute (e.g., "SELECT * FROM orders LIMIT 5")
+        
+    Returns:
+        A string representation of the query results.
+    """
+    try:
+        # Safety check: purely for example. In production, use read-only users!
+        if "DROP" in sql_query.upper() or "DELETE" in sql_query.upper():
+            return "Error: Destructive actions are not allowed."
+            
+        with engine.connect() as connection:
+            print(sql_query)
+            result = connection.execute(text(sql_query))
+            rows = result.fetchall()
+            return str(rows)
+    except Exception as e:
+        return f"Database error: {str(e)}"
+
+
+# Create the agent with the database tool
+db_agent = Agent( 
+    name="sql_analyst",
+    model="gemini-2.5-flash",  # Or your preferred model
+    description="An expert data analyst helper.",
+    instruction="""
+    You are a helpful data analyst. Your goal is to answer user questions by querying the database.
+    1. Translate the user's natural language question into a valid SQL query.
+    2. Use the 'query_database' tool to execute the query.
+    3. Interpret the results and answer the user's question in plain English.
+    """,
+    tools=[query_database], # <--- Register your tool here
+    output_key="db_response"
+)
+
+"""
 consolidate_agent = SequentialAgent(
     name="consolidateagent",
-    sub_agents=[rag_agent, web_agent, final_consolidate_agent],
+    sub_agents=[rag_agent, db_agent, web_agent],
     description="An agent that first retrieves relevant documents using RAG and then consolidates the information to answer the user's query.",
 )
 
 # For ADK tools compatibility, the root agent must be named `root_agent`
-root_agent = consolidate_agent
+root_agent = web_agent
 
 session_service = InMemorySessionService()
 
