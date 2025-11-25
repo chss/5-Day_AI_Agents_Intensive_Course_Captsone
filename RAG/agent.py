@@ -1,21 +1,30 @@
 
-
 import os
 import uuid
-from google.adk.agents.llm_agent import Agent
+#from google.adk.agents.llm_agent import Agent
 from google.adk.agents.llm_agent import LlmAgent
 from google.adk.agents.sequential_agent import SequentialAgent
-#from google.adk.agents import Agent
+from google.adk.agents.parallel_agent import ParallelAgent
+from google.adk.agents import Agent
 from google.adk.tools.retrieval.vertex_ai_rag_retrieval import VertexAiRagRetrieval
 from vertexai.preview import rag
 from google.adk.sessions import InMemorySessionService
 from google.adk.runners import Runner
 from sqlalchemy import create_engine, text
 from google.adk.tools import function_tool
+from toolbox_core import ToolboxSyncClient
+
+# Initialize ToolboxSyncClient and load toolset
+toolbox = ToolboxSyncClient("http://127.0.0.1:5001")
+toolset = toolbox.load_toolset("my-toolset")
+
 
 
 from dotenv import load_dotenv
-from .prompts import return_instructions_root
+try:
+    from .prompts import return_instructions_root
+except ImportError:
+    from prompts import return_instructions_root
 
 load_dotenv()
 
@@ -50,7 +59,7 @@ if rag_corpus:
 
 
 rag_agent = Agent(
-    model='gemini-2.5-flash',
+    model='gemini-2.5-pro',
     name='ask_rag_agent',
     instruction=return_instructions_root(),
     tools= tools,
@@ -60,29 +69,105 @@ rag_agent = Agent(
 
 
 web_agent = Agent(
-    model='gemini-2.5-flash',
+    model='gemini-2.5-pro',
     name='web_search_agent',
     description='Search the web for information',
     instruction='You are a helpful agent that will search the web for information related to the user query. Provide the search results.',
     output_key="web_response"
 )
 
-final_consolidate_agent = Agent(
-    model='gemini-2.5-flash',
-    name='final_consolidate_agent',
-    description='Consolidate responses',
-    instruction='You are a helpful agent that will take response from rag agent {rag_response} and web search agent {web_response}. Consolidate the information to answer the user query. Do not show the intermediate responses, just the final answer with citations.',
-    output_key="final_response"
-) 
-
-consolidate_agent = SequentialAgent(
-    name="consolidateagent",
-    sub_agents=[rag_agent, web_agent, final_consolidate_agent],
-    description="An agent that first retrieves relevant documents using RAG and then consolidates the information to answer the user's query.",
+db_agent = Agent(
+    model='gemini-2.5-pro',
+    name='db_agent',
+    description='A helpful assistant for user questions related to signia products.',
+    instruction='Answer user questions to the best of your knowledge using tools as needed',
+    output_key="db_response",
+    tools=toolset,
 )
 
-# For ADK tools compatibility, the root agent must be named `root_agent`
-root_agent = consolidate_agent
+parallel_agent = ParallelAgent(
+    name="ParallelAgent",
+    sub_agents=[rag_agent,web_agent,db_agent],
+    description="Runs multiple agents in parallel to gather information."
+)
+
+merger_agent = LlmAgent(
+    name="SynthesisAgent",
+    model='gemini-2.5-pro',  # Or potentially a more powerful model if needed for synthesis
+    instruction="""You are an AI Assistant responsible for combining findings into a structured report.
+
+Your primary task is to synthesize the following  summaries, clearly attributing findings to their source areas. Structure your response using headings for each topic. Ensure the report is coherent and integrates the key points smoothly.
+
+**Crucially: Your entire response MUST be grounded *exclusively* on the information provided in the 'Input Summaries' below. Do NOT add any external knowledge, facts, or details not present in these specific summaries.**
+
+**Input Summaries:**
+
+*   **Internal Documentation:**
+    {rag_response}
+
+*   **Web Search:**
+    {web_response}
+
+*   **Database:**
+     {db_response}
+
+**Output Format:**
+
+## Summary of Recent Sustainable Technology Advancements
+
+### Internal Documentation Findings
+(Based on Internal Documentation findings)
+[Synthesize and elaborate *only* on the Internal Documentation input summary provided above.]
+
+### Web Search Findings
+(Based on Web Search findings)
+[Synthesize and elaborate *only* on the Web Search input summary provided above.]
+
+### Database Findings
+(Based on Database findings)
+[Synthesize and elaborate *only* on the Database input summary provided above.]
+
+### Overall Conclusion
+[Provide a brief (1-2 sentence) concluding statement that connects *only* the findings presented above.]
+
+Output *only* the structured report following this format. Do not include introductory or concluding phrases outside this structure, and strictly adhere to using only the provided input summary content.
+""",
+    description="Combines findings from parallel agents into a structured, cited report, strictly grounded on provided inputs.",
+    # No tools needed for merging
+    # No output_key needed here, as its direct response is the final output of the sequence
+)
+
+
+""" consolidate_agent = Agent(
+    model='gemini-2.5-flash',
+    name='consolidate_agent',
+    description='Consolidate responses',
+    # The instruction explicitly pulls the previous output_keys from history
+    instruction=(
+        "You are a final summarization expert. Your goal is to answer the user query "
+        "by synthesizing the following two data sources:\n\n"
+        "1. INTERNAL DOCUMENTATION: {rag_response}\n"
+        "2. WEB SEARCH FINDINGS: {web_response}\n\n"
+        "3. DATABASE FINDINGS: {db_response}\n\n"
+        "COMBINATION INSTRUCTIONS:\n"
+        "- Merge the information into a single, cohesive answer.\n"
+        "- Do NOT mention 'Agent 1 said this' or 'The web agent found that'.\n"
+        "- If the data sources conflict, prioritize Internal Documentation.\n"
+        "- Provide the final summary with citations if available."
+    ),
+    output_key="final_response"
+)
+ """
+
+sequential_pipeline_agent = SequentialAgent(
+    name="SequentialPipelineAgent",
+    # Run parallel research first, then merge
+    sub_agents=[parallel_agent, merger_agent],
+    description="Coordinates parallel agents and synthesizes the results."
+)
+
+root_agent = sequential_pipeline_agent
+
 
 session_service = InMemorySessionService()
 

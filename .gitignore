@@ -1,4 +1,5 @@
 .env
-venv/
+.venv/
 .sql
 .db
+mcp_toolbox/
