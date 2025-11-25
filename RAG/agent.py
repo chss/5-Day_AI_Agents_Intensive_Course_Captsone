@@ -138,26 +138,6 @@ Output *only* the structured report following this format. Do not include introd
 )
 
 
-""" consolidate_agent = Agent(
-    model='gemini-2.5-flash',
-    name='consolidate_agent',
-    description='Consolidate responses',
-    # The instruction explicitly pulls the previous output_keys from history
-    instruction=(
-        "You are a final summarization expert. Your goal is to answer the user query "
-        "by synthesizing the following two data sources:\n\n"
-        "1. INTERNAL DOCUMENTATION: {rag_response}\n"
-        "2. WEB SEARCH FINDINGS: {web_response}\n\n"
-        "3. DATABASE FINDINGS: {db_response}\n\n"
-        "COMBINATION INSTRUCTIONS:\n"
-        "- Merge the information into a single, cohesive answer.\n"
-        "- Do NOT mention 'Agent 1 said this' or 'The web agent found that'.\n"
-        "- If the data sources conflict, prioritize Internal Documentation.\n"
-        "- Provide the final summary with citations if available."
-    ),
-    output_key="final_response"
-)
- """
 
 sequential_pipeline_agent = SequentialAgent(
     name="SequentialPipelineAgent",
@@ -171,7 +151,7 @@ root_agent = sequential_pipeline_agent
 
 session_service = InMemorySessionService()
 
-# Step 3: Create the Runner
+
 runner = Runner(agent=root_agent, app_name=APP_NAME, session_service=session_service)
 
 
