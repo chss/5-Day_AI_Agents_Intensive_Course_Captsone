@@ -1,0 +1,20 @@
+sources:
+  my-bigquery-source:
+    kind: bigquery
+    project: gen-lang-client-0981487682
+    location: us-east1
+tools:
+  search-signia-by-name:
+    kind: bigquery-sql
+    source: my-bigquery-source
+    description: Search for signia based on name.
+    parameters:
+      - name: name
+        type: string
+        description: The name of the signia.
+    statement: SELECT ProductCost, Product_Description FROM Signia.Product WHERE LOWER(product_description) LIKE LOWER(CONCAT('%', @name, '%'));
+# Add this to your tools.yaml if using load_toolset("my-toolset")
+# Ensure it's at the same indentation level as 'sources:' and 'tools:'
+toolsets:
+  my-toolset:
+    - search-signia-by-name
