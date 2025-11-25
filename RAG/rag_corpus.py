@@ -36,6 +36,7 @@ if not LOCATION:
     raise ValueError(
         "GOOGLE_CLOUD_LOCATION environment variable not set. Please set it in your .env file."
     )
+# TODO: Update the corpus display name and description
 CORPUS_DISPLAY_NAME = "Signia"
 CORPUS_DESCRIPTION = "Signia Stapler Information Corpus"
 ENV_FILE_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".env"))
@@ -48,7 +49,7 @@ def initialize_vertex_ai():
       project=PROJECT_ID, location=LOCATION, credentials=credentials
   )
 
-
+# Function to create or get a corpus
 def create_or_get_corpus():
   """Creates a new corpus or retrieves an existing one."""
   embedding_model_config = rag.EmbeddingModelConfig(
@@ -70,7 +71,7 @@ def create_or_get_corpus():
     print(f"Created new corpus with display name '{CORPUS_DISPLAY_NAME}'")
   return corpus
 
-
+# Function to upload a PDF file to a corpus
 def upload_pdf_to_corpus(corpus_name, pdf_path, display_name, description):
   """Uploads a PDF file to the specified corpus."""
   print(f"Uploading {display_name} to corpus...")
@@ -93,6 +94,7 @@ def upload_pdf_to_corpus(corpus_name, pdf_path, display_name, description):
     print(f"Error uploading file {display_name}: {e}")
     return None
 
+# Function to update the .env file with the corpus name
 def update_env_file(corpus_name, env_file_path):
     """Updates the .env file with the corpus name."""
     try:
@@ -101,6 +103,7 @@ def update_env_file(corpus_name, env_file_path):
     except Exception as e:
         print(f"Error updating .env file: {e}")
 
+# Function to list files in a corpus
 def list_corpus_files(corpus_name):
   """Lists files in the specified corpus."""
   files = list(rag.list_files(corpus_name=corpus_name))
@@ -108,7 +111,7 @@ def list_corpus_files(corpus_name):
   for file in files:
     print(f"File: {file.display_name} - {file.name}")
 
-
+# Function to get file paths in a folder
 def get_file_paths_in_folder(folder_path):
     """
     Returns a list of absolute file paths within the specified folder.
@@ -157,7 +160,7 @@ def get_file_paths_in_folder(folder_path):
         print(f"An error occurred: {e}")
     return file_paths
 
-
+# Function to upload PDF files to a corpus
 def main():
   initialize_vertex_ai()
   corpus = create_or_get_corpus() # Uses CORPUS_DISPLAY_NAME & CORPUS_DESCRIPTION

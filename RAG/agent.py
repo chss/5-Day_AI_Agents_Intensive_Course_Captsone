@@ -57,7 +57,7 @@ if rag_corpus:
     tools.append(ask_vertex_retrieval)
 
 
-
+#rag agent to retrieve information from the RAG corpus
 rag_agent = Agent(
     model='gemini-2.5-pro',
     name='ask_rag_agent',
@@ -67,7 +67,7 @@ rag_agent = Agent(
 )
     
 
-
+#web agent to search the web for information
 web_agent = Agent(
     model='gemini-2.5-pro',
     name='web_search_agent',
@@ -76,6 +76,8 @@ web_agent = Agent(
     output_key="web_response"
 )
 
+#db agent to retrieve information from the big query database. 
+# Pay attention to use of MCP server to retrieve information from the database
 db_agent = Agent(
     model='gemini-2.5-pro',
     name='db_agent',
@@ -85,12 +87,14 @@ db_agent = Agent(
     tools=toolset,
 )
 
+#parallel agent to run multiple agents in parallel to gather information
 parallel_agent = ParallelAgent(
     name="ParallelAgent",
     sub_agents=[rag_agent,web_agent,db_agent],
     description="Runs multiple agents in parallel to gather information."
 )
 
+#merger agent to merge the information from the parallel agents
 merger_agent = LlmAgent(
     name="SynthesisAgent",
     model='gemini-2.5-pro',  # Or potentially a more powerful model if needed for synthesis
@@ -138,20 +142,20 @@ Output *only* the structured report following this format. Do not include introd
 )
 
 
-
+#sequential pipeline agent to run the parallel agent and merger agent in sequence
 sequential_pipeline_agent = SequentialAgent(
     name="SequentialPipelineAgent",
     # Run parallel research first, then merge
     sub_agents=[parallel_agent, merger_agent],
     description="Coordinates parallel agents and synthesizes the results."
 )
-
+#root agent to run the sequential pipeline agent
 root_agent = sequential_pipeline_agent
 
-
+#session service to store the session
 session_service = InMemorySessionService()
 
-
+#runner to run the agent
 runner = Runner(agent=root_agent, app_name=APP_NAME, session_service=session_service)
 
 
