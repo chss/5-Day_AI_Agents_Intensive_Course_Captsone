@@ -55,7 +55,13 @@ This project implements a Retrieval-Augmented Generation (RAG) agent using Googl
     ```
 
     *Note: The `RAG_CORPUS` ID can be obtained by running the `RAG/rag_corpus.py` script if you are setting up a new corpus.*
+    Googgle Cloud Project, Goolge API key, Staging Bucket all can be created in the Google Cloud Console.
+    You will also need to setup a BigQuery dataset named Signia and table named Product.  The Product table will have following columns product_description, productCost, ProductID.  You can populated with some sample data as follows
+    
+    ![alt text](image-1.png)
 
+    Sample data
+    ![alt text](image-2.png)
 ## Usage
 
 ### verify_toolset.py
@@ -66,21 +72,17 @@ Run this script to verify that the `toolbox-core` and `my-toolset` are correctly
 python verify_toolset.py
 ```
 
-### RAG/agent.py
+## Execution
 
-This is the main agent script. It initializes the agents (RAG, Web, Database) and the sequential pipeline.
+* Modify the Rag_Corpus.py file to point to local drive where Signia documents. Medtronic.com provides Signia documents in PDF format. 
+* Executed the python RAG/rag_corpus.py to upload Signia documents to the RAG corpus.
+* Ensure that the BigQuery dataset named Signia and table named Product.  The Product table will have following columns product_description, productCost, ProductID.  You can populated with some sample data. (as shown above)
+* Run adk web at the root directory of the project in the terminal.
 
-```bash
-python RAG/agent.py
-```
+Sample Query:
+   Provide all the information on SigniaHandle along with the price.
 
-### RAG/rag_corpus.py
 
-Use this script to manage your RAG corpus (create corpus, upload files).
-
-```bash
-python RAG/rag_corpus.py
-```
 
 ## Troubleshooting
 
